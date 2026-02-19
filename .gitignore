@@ -1,0 +1,32 @@
+#Python / FastAPI
+.venv/
+__pycache__/
+*.pyc
+*.pyo 
+
+#Environment Variables 
+backend/.env
+
+# Node / Frontend
+
+node_modules/
+dist/
+.env
+
+# OS / Editor junk
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Logs
+*.log
+
+# Python cache everywhere
+**/__pycache__/
+
+# Vite
+frontend/node_modules/
+frontend/dist/
+
+# Docker override
+docker-compose.override.yml
