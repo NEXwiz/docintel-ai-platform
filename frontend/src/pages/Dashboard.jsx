@@ -1,77 +1,53 @@
 import { useEffect, useState } from "react"
 import api from "@/api/client"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
-export default function Dashboard({ onAsk }) {
+export default function Dashboard() {
   const [documents, setDocuments] = useState([])
   const [loading, setLoading] = useState(true)
 
-  const fetchDocuments = async () => {
-    try {
-      const res = await api.get("/documents/")
-      setDocuments(res.data)
-    } catch (err) {
-      console.error(err.response?.data || err.message)
-    } finally {
-      setLoading(false)
-    }
-  }
-
   useEffect(() => {
-    fetchDocuments()
+    const fetchDocs = async () => {
+      try {
+        const res = await api.get("/documents/")
+        setDocuments(res.data)
+      } catch (err) {
+        console.error(err.response?.data || err.message)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchDocs()
   }, [])
 
-  const handleDelete = async (id) => {
-    try {
-      await api.delete(`/documents/${id}`)
-      setDocuments(documents.filter((doc) => doc.id !== id))
-    } catch (err) {
-      console.error(err.response?.data || err.message)
-      alert("Delete failed")
-    }
-  }
-
-  if (loading) return <div className="p-6">Loading...</div>
-
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-xl font-semibold">My Documents</h2>
+    <div className="space-y-6">
+      <h2 className="text-2xl font-semibold">Dashboard</h2>
 
-      {documents.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          No documents uploaded yet.
-        </p>
+      {loading ? (
+        <p>Loading...</p>
+      ) : documents.length === 0 ? (
+        <p>No documents found</p>
+      ) : (
+        <div className="space-y-4">
+          {documents.map((doc) => (
+            <Card key={doc.id}>
+              <CardContent className="p-4 flex justify-between items-center">
+                <div>
+                  <p className="font-medium">{doc.filename}</p>
+                  <p className="text-sm text-muted-foreground">
+                    ID: {doc.id}
+                  </p>
+                </div>
+
+                <Button variant="outline">Ask</Button>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       )}
-
-      {documents.map((doc) => (
-        <Card key={doc.id}>
-          <CardContent className="flex justify-between items-center p-4">
-            <div>
-              <p className="font-medium">{doc.filename}</p>
-              <p className="text-xs text-muted-foreground">
-                ID: {doc.id}
-              </p>
-            </div>
-
-            <div className="space-x-2">
-              <Button
-                variant="outline"
-                onClick={() => onAsk(doc.id)}
-              >
-                Ask
-              </Button>
-
-              <Button
-                variant="destructive"
-                onClick={() => handleDelete(doc.id)}
-              >
-                Delete
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
     </div>
   )
 }

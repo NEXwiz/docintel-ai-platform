@@ -8,7 +8,7 @@ class VectorStore:
     def __init__(self):
         self.collection_name = "documents"
 
-        for _ in range(10):
+        for _ in range(30):
             try:
                 self.client = QdrantClient(host="qdrant", port=6333)
                 self.client.get_collections()
