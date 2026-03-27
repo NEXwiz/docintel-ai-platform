@@ -3,21 +3,35 @@ from qdrant_client.http.models import Distance, VectorParams, PointStruct
 from typing import List
 import time
 import uuid
+import os
+
 
 class VectorStore:
     def __init__(self):
         self.collection_name = "documents"
 
-        for _ in range(30):
-            try:
-                self.client = QdrantClient(host="qdrant", port=6333)
-                self.client.get_collections()
-                break
-            except Exception:
-                print("Waiting for Qdrant...")
-                time.sleep(2)
+        url = os.getenv("QDRANT_URL")
+        api_key = os.getenv("QDRANT_API_KEY")
+
+        if url:
+            print("Using Qdrant Cloud...")
+            self.client = QdrantClient(
+                url = url,
+                api_key = api_key
+            )
+
         else:
-            raise Exception("Qdrant not available")
+            print("Using Qdrant locally...")
+            for _ in range(30):
+                try:
+                    self.client = QdrantClient(host="qdrant", port=6333)
+                    self.client.get_collections()
+                    break
+                except Exception:
+                    print("Waiting for Qdrant...")
+                    time.sleep(2)
+            else:
+                raise Exception("Qdrant not available")
         
         self._ensure_collection()
 
