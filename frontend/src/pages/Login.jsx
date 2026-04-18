@@ -81,12 +81,18 @@ export default function Login({ onLogin }) {
         onLogin(token)
       }
     } catch (err) {
-      const detail = err.response?.data?.detail
-      if (isSignUp) {
-        setError(typeof detail === "string" ? detail : "Registration failed. Try a different email.")
+      const data = err.response?.data
+      let msg = ""
+      if (typeof data?.detail === "string") {
+        msg = data.detail
+      } else if (Array.isArray(data?.detail)) {
+        msg = data.detail.map((e) => e.msg || e.message || JSON.stringify(e)).join("; ")
+      } else if (err.response?.status) {
+        msg = `Server error (${err.response.status}). Please try again.`
       } else {
-        setError(typeof detail === "string" ? detail : "Invalid email or password")
+        msg = "Network error. Check your connection."
       }
+      setError(msg)
     } finally {
       setLoading(false)
     }
