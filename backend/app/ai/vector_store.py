@@ -35,16 +35,32 @@ class VectorStore:
         
         self._ensure_collection()
 
+    VECTOR_SIZE = 768
+
     def _ensure_collection(self):
         collections = self.client.get_collections().collections
-        if not any(c.name == self.collection_name for c in collections):
-            self.client.create_collection(
-                collection_name = self.collection_name,
-                vectors_config = VectorParams(
-                    size = 768,
-                    distance = Distance.COSINE
-                )
+        existing = next((c for c in collections if c.name == self.collection_name), None)
+
+        if existing:
+            # Check if dimension matches; if not, recreate
+            try:
+                info = self.client.get_collection(self.collection_name)
+                current_size = info.config.params.vectors.size
+                if current_size != self.VECTOR_SIZE:
+                    print(f"Collection dimension mismatch ({current_size} vs {self.VECTOR_SIZE}), recreating...")
+                    self.client.delete_collection(self.collection_name)
+                else:
+                    return
+            except Exception:
+                pass
+
+        self.client.create_collection(
+            collection_name = self.collection_name,
+            vectors_config = VectorParams(
+                size = self.VECTOR_SIZE,
+                distance = Distance.COSINE
             )
+        )
         
     def upsert_chunks(
             self,

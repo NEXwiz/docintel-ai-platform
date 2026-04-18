@@ -11,4 +11,10 @@ class EmbeddingService:
             model="models/text-embedding-004",
             content=texts
         )
-        return result["embedding"]
+        embeddings = result["embedding"]
+
+        # If single text was passed, Gemini returns a flat list instead of list-of-lists
+        if embeddings and not isinstance(embeddings[0], list):
+            embeddings = [embeddings]
+
+        return embeddings

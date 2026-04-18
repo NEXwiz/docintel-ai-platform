@@ -21,4 +21,4 @@ def chunk_text(
         if start < 0:
             start = 0
 
-        return chunks
+    return chunks
