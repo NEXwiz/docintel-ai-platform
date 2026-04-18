@@ -1,14 +1,14 @@
-from sentence_transformers import SentenceTransformer
+import os
+import google.generativeai as genai
 from typing import List
 
 class EmbeddingService:
-    def __init__(self,model_name: str = "all-MiniLM-L6-v2"):
-        self.model = SentenceTransformer(model_name)
+    def __init__(self):
+        genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
     def embed_texts(self, texts: List[str]) -> List[List[float]]:
-        embeddings = self.model.encode(
-            texts,
-            show_progress_bar = False,
-            convert_to_numpy = True
+        result = genai.embed_content(
+            model="models/text-embedding-004",
+            content=texts
         )
-        return embeddings.tolist()
+        return result["embedding"]
