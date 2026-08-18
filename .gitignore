@@ -30,3 +30,10 @@ frontend/dist/
 
 # Docker override
 docker-compose.override.yml
+
+# Local context files
+context.md
+AIML_WORKFLOW.md
+
+# Eval results (generated)
+evals/results.json

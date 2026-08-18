@@ -29,22 +29,31 @@ jobs:
           cd backend
           python -m compileall .
 
-     
-      - name: Set up Node
-        uses: actions/setup-node@v4
+  ragas_eval:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
         with:
-          node-version: "22"
+          python-version: "3.10"
 
-      - name: Install frontend dependencies
-        run: |
-          cd frontend
-          npm install
+      - name: Install eval dependencies
+        run: pip install -r evals/requirements.txt
 
-      - name: Build frontend
-        run: |
-          cd frontend
-          npm run build
+      - name: Run RAGAS evaluation
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          RAGAS_THRESHOLD: "0.7"
+        run: python evals/run_eval.py
 
-      
-      - name: Build Docker images
-        run: docker compose build
+      - name: Upload eval results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ragas_results
+          path: evals/results.json

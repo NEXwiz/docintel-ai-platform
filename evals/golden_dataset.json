@@ -1,0 +1,42 @@
+[
+  {
+    "question": "How does the system chunk documents before embedding?",
+    "ground_truth": "Documents are chunked into segments of 40 words with a 5 word overlap between consecutive chunks.",
+    "contexts": [
+      "The chunking function splits text into words and creates chunks of 40 words each. There is a 5 word overlap between consecutive chunks to preserve context across boundaries.",
+      "After text extraction, the document text is passed through the chunking module which produces overlapping segments for embedding."
+    ]
+  },
+  {
+    "question": "What embedding model is used and what is the vector dimension?",
+    "ground_truth": "The system uses Google's text-embedding-004 model which produces 768 dimensional vectors.",
+    "contexts": [
+      "The EmbeddingService uses the Gemini text-embedding-004 model to generate embeddings for document chunks.",
+      "The vector store is configured with a vector size of 768 dimensions using cosine distance similarity."
+    ]
+  },
+  {
+    "question": "How many context chunks are retrieved for answering a question?",
+    "ground_truth": "The retrieval service returns the top 5 most relevant chunks by default.",
+    "contexts": [
+      "The retrieval service searches the vector store with a default limit of 5 results, filtered by user_id and optionally by document_id.",
+      "Query embeddings are compared against stored document chunk embeddings using cosine similarity in Qdrant."
+    ]
+  },
+  {
+    "question": "What happens if the answer is not found in the provided context?",
+    "ground_truth": "The LLM is instructed to respond with 'I don't know' if the answer is not present in the context.",
+    "contexts": [
+      "The system prompt instructs the model: Answer the question strictly based on the context below. If the answer is not present in the context, say I don't know.",
+      "The LLM service uses Gemini with a prompt that enforces answering only from the provided context chunks."
+    ]
+  },
+  {
+    "question": "What vector database is used for storing document embeddings?",
+    "ground_truth": "Qdrant is used as the vector database, supporting both cloud deployment and local Docker instances.",
+    "contexts": [
+      "The VectorStore class connects to Qdrant either via a cloud URL with API key or locally on host qdrant port 6333.",
+      "Document embeddings are stored in a Qdrant collection named 'documents' with cosine distance similarity."
+    ]
+  }
+]

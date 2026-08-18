@@ -11,11 +11,14 @@ services:
     depends_on:
       - qdrant
 
-  frontend:
-    build: ./frontend
-    container_name: docintel_frontend
+  streamlit:
+    build: ./backend
+    container_name: docintel_streamlit
+    command: streamlit run /app/streamlit_app.py --server.port=8501 --server.address=0.0.0.0
     ports:
-      - "5173:80"
+      - "8501:8501"
+    env_file:
+      - ./backend/.env
     depends_on:
       - backend
 
