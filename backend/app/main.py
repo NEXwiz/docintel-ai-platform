@@ -8,6 +8,7 @@ from app.api import users, documents
 from app.api import auth
 from app.api import search
 from app.api import qa
+from app.api import evaluate
 
 
 @asynccontextmanager
@@ -36,6 +37,7 @@ app.include_router(documents.router)
 app.include_router(auth.router)
 app.include_router(search.router)
 app.include_router(qa.router)
+app.include_router(evaluate.router)
 
 
 @app.get("/health")

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from fastapi import UploadFile, File
 from qdrant_client.models import Filter, FieldCondition, MatchValue
@@ -10,8 +10,8 @@ from app.schemas.document import DocumentCreate, DocumentResponse
 from app.core.deps import get_current_user
 
 from app.services.file_services import save_uploaded_file
-from app.ai.ingestion import extract_text
-from app.ai.chunking import chunk_text
+from app.ai.ingestion import extract_with_format
+from app.ai.chunking import smart_chunk, create_parent_child_chunks
 from app.ai.embeddings import EmbeddingService
 from app.ai.vector_store import VectorStore
 
@@ -29,7 +29,7 @@ def create_document(
     current_user : User = Depends(get_current_user),
     db:Session = Depends(get_db)
 ):
-    
+
     new_document = Document(
         user_id = current_user.id,
         filename = document.filename
@@ -53,44 +53,93 @@ def list_documents(
 def upload_document(
     file: UploadFile = File(...),                    #(...) -> client must send this
     current_user: User = Depends(get_current_user),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    chunk_size: int = Query(200, ge=50, le=1000, description="Target chunk size in tokens"),
+    chunking_method: str = Query("auto", description="Chunking method: auto, structural, semantic"),
+    use_parent_child: bool = Query(False, description="Use parent-child chunking for better retrieval"),
 ):
     file_path = save_uploaded_file(file, current_user.id)
-    text = extract_text(file_path)
+    text, format_tag = extract_with_format(file_path)
     if not text or not text.strip():
         raise HTTPException(
             status_code = 400,
             detail = "No extractable text found in document"
         )
 
-    chunks = chunk_text(text)
-    if not chunks:
-        raise HTTPException(
-            status_code=400,
-            detail="Document text too short to process"
-        )
-    embeddings = embedding_service.embed_texts(chunks)
-    
+    # Create document record FIRST so we can rollback if vectorization fails
     document = Document(
         user_id = current_user.id,
         filename = file.filename
     )
-
     db.add(document)
     db.commit()
     db.refresh(document)
 
-    vector_store.upsert_chunks(
-        embeddings = embeddings,
-        chunks = chunks,
-        user_id = current_user.id,
-        document_id = document.id
-    )
+    try:
+        if use_parent_child:
+            # Parent-child chunking: small chunks for search, big chunks for LLM
+            pc_data = create_parent_child_chunks(
+                text,
+                parent_size=chunk_size * 2,
+                child_size=chunk_size,
+                format_tag=format_tag,
+            )
+            if not pc_data:
+                raise HTTPException(status_code=400, detail="Document text too short to process")
 
-    return {
-        "document_id":document.id,
-        "chunks_stored":len(chunks)
-    }
+            child_texts = [pc["child_text"] for pc in pc_data]
+            embeddings = embedding_service.embed_texts(child_texts)
+
+            vector_store.upsert_parent_child_chunks(
+                embeddings=embeddings,
+                parent_child_data=pc_data,
+                user_id=current_user.id,
+                document_id=document.id
+            )
+
+            return {
+                "document_id": document.id,
+                "chunks_stored": len(pc_data),
+                "method": "parent_child",
+                "format": format_tag,
+            }
+        else:
+            # Standard chunking with format-awareness
+            chunks = smart_chunk(
+                text,
+                format_tag=format_tag,
+                chunk_size=chunk_size,
+                method=chunking_method,
+            )
+            if not chunks:
+                raise HTTPException(status_code=400, detail="Document text too short to process")
+
+            embeddings = embedding_service.embed_texts(chunks)
+
+            vector_store.upsert_chunks(
+                embeddings=embeddings,
+                chunks=chunks,
+                user_id=current_user.id,
+                document_id=document.id
+            )
+
+            return {
+                "document_id": document.id,
+                "chunks_stored": len(chunks),
+                "method": chunking_method,
+                "format": format_tag,
+            }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        # Rollback DB record if vectorization fails
+        db.delete(document)
+        db.commit()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Document processing failed: {str(e)}"
+        )
 
 @router.delete("/{document_id}")
 def delete_document(
@@ -108,9 +157,8 @@ def delete_document(
 
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
-    
-    #Deleting vectors from qdrant
-    vector_store = VectorStore()
+
+    #Deleting vectors from qdrant (use module-level instance, not new one)
     vector_store.client.delete(
         collection_name = vector_store.collection_name,
         points_selector = Filter(

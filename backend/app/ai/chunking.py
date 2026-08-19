@@ -365,3 +365,220 @@ def _clean_text(text: str) -> str:
     # Remove null bytes and control characters (except newline/tab)
     text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
     return text.strip()
+
+
+# ---------------------------------------------------------------------------
+# Smart routing: dispatch to format-specific chunker
+# ---------------------------------------------------------------------------
+
+def smart_chunk(
+        text: str,
+        format_tag: str = "plain",
+        chunk_size: int = 200,
+        method: str = "auto"
+) -> List[str]:
+    """
+    Route text to the appropriate chunker based on format and method.
+
+    Args:
+        text: The extracted document text.
+        format_tag: One of "pdf", "html", "markdown", "docx", "plain".
+        chunk_size: Target chunk size in tokens.
+        method: "auto" (format-aware), "semantic", or "structural" (existing).
+
+    Returns:
+        List of chunk strings.
+    """
+    if not text or not text.strip():
+        return []
+
+    text = _clean_text(text)
+
+    # Semantic chunking — uses embedding similarity
+    if method == "semantic":
+        return semantic_chunk_text(text, chunk_size=chunk_size)
+
+    # Structural chunking — the existing sentence-aware method
+    if method == "structural":
+        return chunk_text(text, chunk_size=chunk_size)
+
+    # Auto mode — use format-specific chunkers
+    from app.ai.format_chunkers import chunk_pdf, chunk_html, chunk_markdown, FormatChunk
+
+    format_chunkers = {
+        "pdf": chunk_pdf,
+        "html": chunk_html,
+        "markdown": chunk_markdown,
+    }
+
+    chunker = format_chunkers.get(format_tag)
+    if chunker:
+        format_chunks: List[FormatChunk] = chunker(text, chunk_size=chunk_size)
+        # Convert FormatChunks to enriched strings
+        result = []
+        for fc in format_chunks:
+            if fc.section:
+                result.append(f"[{fc.section}]\n{fc.text}")
+            else:
+                result.append(fc.text)
+        return result
+
+    # Fallback: existing structural chunking for plain text / docx
+    return chunk_text(text, chunk_size=chunk_size)
+
+
+# ---------------------------------------------------------------------------
+# Semantic chunking (uses local sentence-transformers)
+# ---------------------------------------------------------------------------
+
+def semantic_chunk_text(
+        text: str,
+        chunk_size: int = 200,
+        similarity_threshold: float = 0.3,
+) -> List[str]:
+    """
+    Chunk text by embedding similarity between consecutive sentences.
+    Uses local sentence-transformers model (no API cost).
+
+    Strategy:
+      1. Split into sentences
+      2. Embed each sentence locally
+      3. Compute cosine similarity between consecutive pairs
+      4. Split where similarity drops below threshold
+      5. Group resulting segments up to chunk_size
+
+    Falls back to structural chunking if sentence-transformers unavailable.
+    """
+    try:
+        from sentence_transformers import SentenceTransformer
+        import numpy as np
+    except ImportError:
+        # Fallback if sentence-transformers not installed
+        return chunk_text(text, chunk_size=chunk_size)
+
+    sentences = _split_sentences(text)
+    if len(sentences) <= 1:
+        return [text.strip()] if text.strip() else []
+
+    # Expand oversized sentences
+    expanded = []
+    for s in sentences:
+        if _count_tokens(s) > chunk_size:
+            expanded.extend(_recursive_split(s, chunk_size))
+        else:
+            expanded.append(s)
+    sentences = expanded
+
+    if len(sentences) <= 1:
+        return sentences
+
+    # Embed all sentences locally
+    model = SentenceTransformer('all-MiniLM-L6-v2')
+    embeddings = model.encode(sentences, show_progress_bar=False)
+
+    # Compute cosine similarity between consecutive sentence pairs
+    similarities = []
+    for i in range(len(embeddings) - 1):
+        a = embeddings[i]
+        b = embeddings[i + 1]
+        cos_sim = np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b) + 1e-8)
+        similarities.append(float(cos_sim))
+
+    # Find split points where similarity drops
+    # Use dynamic threshold: mean - 1 std, but no lower than similarity_threshold
+    if similarities:
+        mean_sim = np.mean(similarities)
+        std_sim = np.std(similarities)
+        dynamic_threshold = max(mean_sim - std_sim, similarity_threshold)
+    else:
+        dynamic_threshold = similarity_threshold
+
+    # Build semantic segments
+    segments = []
+    current_segment = [sentences[0]]
+
+    for i, sim in enumerate(similarities):
+        if sim < dynamic_threshold:
+            # Boundary found — save current segment
+            segments.append(current_segment)
+            current_segment = [sentences[i + 1]]
+        else:
+            current_segment.append(sentences[i + 1])
+
+    if current_segment:
+        segments.append(current_segment)
+
+    # Group segments into chunks respecting chunk_size
+    chunks = []
+    for segment in segments:
+        segment_text = ' '.join(segment)
+        if _count_tokens(segment_text) <= chunk_size:
+            chunks.append(segment_text)
+        else:
+            # Sub-chunk oversized segments
+            current = []
+            current_tokens = 0
+            for sent in segment:
+                st = _count_tokens(sent)
+                if current_tokens + st > chunk_size and current:
+                    chunks.append(' '.join(current))
+                    current = []
+                    current_tokens = 0
+                current.append(sent)
+                current_tokens += st
+            if current:
+                chunks.append(' '.join(current))
+
+    return chunks
+
+
+# ---------------------------------------------------------------------------
+# Parent-child chunking (for parent-child retrieval)
+# ---------------------------------------------------------------------------
+
+def create_parent_child_chunks(
+        text: str,
+        parent_size: int = 400,
+        child_size: int = 100,
+        format_tag: str = "plain",
+) -> List[dict]:
+    """
+    Create parent and child chunks for parent-child retrieval.
+
+    Small child chunks are used for search precision.
+    Parent chunks provide broader context for LLM generation.
+
+    Returns:
+        List of dicts:
+        {
+            "child_text": str,       # small chunk for embedding
+            "parent_text": str,      # broader context for LLM
+            "parent_id": int,        # parent chunk index
+            "child_id": int,         # child chunk index
+        }
+    """
+    if not text or not text.strip():
+        return []
+
+    text = _clean_text(text)
+
+    # Create parent chunks using format-aware or structural chunking
+    parent_chunks = smart_chunk(text, format_tag=format_tag, chunk_size=parent_size)
+
+    results = []
+    child_id = 0
+
+    for parent_id, parent_text in enumerate(parent_chunks):
+        # Create child chunks within each parent
+        child_chunks = chunk_text(parent_text, chunk_size=child_size, overlap_sentences=0)
+
+        for child_text in child_chunks:
+            results.append({
+                "child_text": child_text,
+                "parent_text": parent_text,
+                "parent_id": parent_id,
+                "child_id": child_id,
+            })
+            child_id += 1
+
+    return results

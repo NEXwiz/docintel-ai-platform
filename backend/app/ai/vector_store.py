@@ -74,7 +74,7 @@ class VectorStore:
 
     def upsert_chunks(
             self,
-            embeddings: List[List[str]],
+            embeddings: List[List[float]],
             chunks: List[str],
             user_id: int,
             document_id: int
@@ -90,6 +90,45 @@ class VectorStore:
                         "user_id": user_id,
                         "document_id": document_id,
                         "text": text
+                    }
+                )
+            )
+
+        self.client.upsert(
+            collection_name=self.collection_name,
+            points=points
+        )
+
+    def upsert_parent_child_chunks(
+            self,
+            embeddings: List[List[float]],
+            parent_child_data: List[dict],
+            user_id: int,
+            document_id: int
+    ):
+        """
+        Upsert chunks with parent-child relationship.
+        Each point stores child_text (for search) and parent_text (for LLM context).
+
+        Args:
+            embeddings: Embeddings for the child chunks.
+            parent_child_data: List of dicts from create_parent_child_chunks().
+            user_id: The user who owns the document.
+            document_id: The document ID.
+        """
+        points = []
+
+        for vector, pc_data in zip(embeddings, parent_child_data):
+            points.append(
+                PointStruct(
+                    id=str(uuid.uuid4()),
+                    vector=vector,
+                    payload={
+                        "user_id": user_id,
+                        "document_id": document_id,
+                        "text": pc_data["child_text"],
+                        "parent_text": pc_data["parent_text"],
+                        "parent_id": pc_data["parent_id"],
                     }
                 )
             )

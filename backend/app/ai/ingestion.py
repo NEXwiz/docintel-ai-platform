@@ -16,6 +16,18 @@ import re
 from typing import Optional
 
 
+# Map file extensions to their format tag for chunking routing
+_FORMAT_MAP = {
+    ".pdf": "pdf",
+    ".docx": "docx",
+    ".txt": "plain",
+    ".md": "markdown",
+    ".csv": "plain",
+    ".html": "html",
+    ".htm": "html",
+}
+
+
 def extract_text(file_path: str) -> str:
     """
     Extract text from a document file.
@@ -30,6 +42,18 @@ def extract_text(file_path: str) -> str:
         ValueError: If the file format is unsupported.
         FileNotFoundError: If the file doesn't exist.
     """
+    text, _ = extract_with_format(file_path)
+    return text
+
+
+def extract_with_format(file_path: str) -> tuple:
+    """
+    Extract text and return the format tag for chunking routing.
+
+    Returns:
+        Tuple of (extracted_text: str, format_tag: str)
+        format_tag is one of: "pdf", "docx", "markdown", "html", "plain"
+    """
     if not os.path.exists(file_path):
         raise FileNotFoundError(f"File not found: {file_path}")
 
@@ -41,6 +65,8 @@ def extract_text(file_path: str) -> str:
         ".txt": _extract_txt_text,
         ".md": _extract_txt_text,
         ".csv": _extract_txt_text,
+        ".html": _extract_html_text,
+        ".htm": _extract_html_text,
     }
 
     extractor = extractors.get(ext)
@@ -48,10 +74,10 @@ def extract_text(file_path: str) -> str:
         raise ValueError(f"Unsupported file format: {ext}")
 
     text = extractor(file_path)
-
-    # Post-process: normalize whitespace, remove empty lines clusters
     text = _post_process(text)
-    return text
+
+    format_tag = _FORMAT_MAP.get(ext, "plain")
+    return text, format_tag
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +94,12 @@ def _extract_pdf_text(path: str) -> str:
     all_pages = []
 
     for page_num, page in enumerate(reader.pages, start=1):
-        page_text = page.extract_text(extraction_mode="layout") or ""
+        # Try layout mode first (better for multi-column PDFs)
+        try:
+            page_text = page.extract_text(extraction_mode="layout") or ""
+        except (TypeError, ValueError):
+            # Older pypdf versions may not support extraction_mode
+            page_text = page.extract_text() or ""
 
         # If layout mode returns nothing, fall back to plain extraction
         if not page_text.strip():
@@ -216,6 +247,34 @@ def _extract_table_text(table) -> str:
         rows.insert(1, separator)
 
     return "\n".join(rows)
+
+
+# ---------------------------------------------------------------------------
+# HTML extraction
+# ---------------------------------------------------------------------------
+
+def _extract_html_text(path: str) -> str:
+    """Extract text from HTML file using BeautifulSoup.
+    Returns raw HTML for the HTML chunker, with noise elements removed."""
+    raw = _extract_txt_text(path)  # read file with encoding fallback
+
+    try:
+        from bs4 import BeautifulSoup
+    except ImportError:
+        # If BeautifulSoup not installed, strip tags with regex as fallback
+        text = re.sub(r'<script[^>]*>.*?</script>', '', raw, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<style[^>]*>.*?</style>', '', text, flags=re.DOTALL | re.IGNORECASE)
+        text = re.sub(r'<[^>]+>', ' ', text)
+        text = re.sub(r'\s+', ' ', text)
+        return text.strip()
+
+    soup = BeautifulSoup(raw, 'html.parser')
+
+    # Remove noise elements
+    for tag in soup.find_all(['script', 'style', 'nav', 'footer', 'header']):
+        tag.decompose()
+
+    return soup.get_text(separator='\n', strip=True)
 
 
 # ---------------------------------------------------------------------------
