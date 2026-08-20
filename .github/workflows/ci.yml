@@ -40,7 +40,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.10"
+          python-version: "3.11"
 
       - name: Install eval dependencies
         run: pip install -r evals/requirements.txt
@@ -48,8 +48,15 @@ jobs:
       - name: Run RAGAS evaluation
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
           RAGAS_THRESHOLD: "0.7"
-        run: python evals/run_eval.py
+        run: |
+          if [ -z "$GROQ_API_KEY" ]; then
+            echo "GROQ_API_KEY not set — skipping RAGAS eval"
+            echo '{"skipped": true}' > evals/results.json
+          else
+            python evals/run_eval.py
+          fi
 
       - name: Upload eval results
         if: always()
