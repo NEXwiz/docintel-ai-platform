@@ -5,15 +5,16 @@ from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from app.db.session import get_db
 from app.models.document import Document
-from app.models.user import User
 from app.schemas.document import DocumentCreate, DocumentResponse
-from app.core.deps import get_current_user
 
 from app.services.file_services import save_uploaded_file
 from app.ai.ingestion import extract_with_format
 from app.ai.chunking import smart_chunk, create_parent_child_chunks
 from app.ai.embeddings import EmbeddingService
 from app.ai.vector_store import VectorStore
+
+# Default user ID (auth removed — RAG-focused development)
+DEFAULT_USER_ID = 1
 
 embedding_service = EmbeddingService()
 vector_store = VectorStore()
@@ -26,12 +27,11 @@ router = APIRouter(
 @router.post("/",response_model=DocumentResponse)
 def create_document(
     document: DocumentCreate,
-    current_user : User = Depends(get_current_user),
-    db:Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
 
     new_document = Document(
-        user_id = current_user.id,
+        user_id = DEFAULT_USER_ID,
         filename = document.filename
     )
 
@@ -43,22 +43,20 @@ def create_document(
 
 @router.get("/",response_model=list[DocumentResponse])
 def list_documents(
-    current_user : User = Depends(get_current_user),
-    db:Session = Depends(get_db)
+    db: Session = Depends(get_db)
 ):
 
-    return (db.query(Document).filter(Document.user_id == current_user.id).order_by(Document.created_at.desc()).all())
+    return (db.query(Document).filter(Document.user_id == DEFAULT_USER_ID).order_by(Document.created_at.desc()).all())
 
 @router.post("/upload")
 def upload_document(
-    file: UploadFile = File(...),                    #(...) -> client must send this
-    current_user: User = Depends(get_current_user),
+    file: UploadFile = File(...),
     db: Session = Depends(get_db),
     chunk_size: int = Query(200, ge=50, le=1000, description="Target chunk size in tokens"),
     chunking_method: str = Query("auto", description="Chunking method: auto, structural, semantic"),
     use_parent_child: bool = Query(False, description="Use parent-child chunking for better retrieval"),
 ):
-    file_path = save_uploaded_file(file, current_user.id)
+    file_path = save_uploaded_file(file, DEFAULT_USER_ID)
     text, format_tag = extract_with_format(file_path)
     if not text or not text.strip():
         raise HTTPException(
@@ -68,7 +66,7 @@ def upload_document(
 
     # Create document record FIRST so we can rollback if vectorization fails
     document = Document(
-        user_id = current_user.id,
+        user_id = DEFAULT_USER_ID,
         filename = file.filename
     )
     db.add(document)
@@ -93,7 +91,7 @@ def upload_document(
             vector_store.upsert_parent_child_chunks(
                 embeddings=embeddings,
                 parent_child_data=pc_data,
-                user_id=current_user.id,
+                user_id=DEFAULT_USER_ID,
                 document_id=document.id
             )
 
@@ -119,7 +117,7 @@ def upload_document(
             vector_store.upsert_chunks(
                 embeddings=embeddings,
                 chunks=chunks,
-                user_id=current_user.id,
+                user_id=DEFAULT_USER_ID,
                 document_id=document.id
             )
 
@@ -144,13 +142,12 @@ def upload_document(
 @router.delete("/{document_id}")
 def delete_document(
     document_id: int,
-    current_user : User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     document = (
         db.query(Document).filter(
             Document.id == document_id,
-            Document.user_id == current_user.id
+            Document.user_id == DEFAULT_USER_ID
         )
         .first()
     )
@@ -158,7 +155,7 @@ def delete_document(
     if not document:
         raise HTTPException(status_code=404, detail="Document not found")
 
-    #Deleting vectors from qdrant (use module-level instance, not new one)
+    #Deleting vectors from qdrant
     vector_store.client.delete(
         collection_name = vector_store.collection_name,
         points_selector = Filter(
@@ -169,7 +166,7 @@ def delete_document(
                 ),
                 FieldCondition(
                     key = "user_id",
-                    match = MatchValue(value = current_user.id),
+                    match = MatchValue(value = DEFAULT_USER_ID),
                 ),
             ]
         )

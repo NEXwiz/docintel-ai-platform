@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
 from app.ai.retrieval import RetrievalService
-from app.core.deps import get_current_user
-from app.models.user import User
+
+# Default user ID (auth removed — RAG-focused development)
+DEFAULT_USER_ID = 1
 
 router = APIRouter(
     prefix="/search",
@@ -15,11 +16,10 @@ retrieval_service = RetrievalService()
 def semantic_search(
     query: str,
     document_id: int | None = None,
-    current_user: User = Depends(get_current_user)
 ):
     results = retrieval_service.search(
         query = query,
-        user_id = current_user.id,
+        user_id = DEFAULT_USER_ID,
         document_id = document_id
     )
 

@@ -1,9 +1,10 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.core.deps import get_current_user
-from app.models.user import User
 from app.ai.retrieval  import RetrievalService
 from app.ai.llm import LLMService
+
+# Default user ID (auth removed — RAG-focused development)
+DEFAULT_USER_ID = 1
 
 router = APIRouter(
     prefix="/qa",
@@ -17,11 +18,10 @@ llm_service = LLMService()
 def ask_question(
     query: str,
     document_id: int | None = None,
-    current_user: User = Depends(get_current_user)
 ):
     chunks = retrieval_service.search(
         query = query,
-        user_id = current_user.id,
+        user_id = DEFAULT_USER_ID,
         document_id = document_id
     )
 
