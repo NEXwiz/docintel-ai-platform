@@ -43,7 +43,7 @@ class EmbeddingService:
         for attempt in range(_MAX_RETRIES):
             try:
                 result = genai.embed_content(
-                    model="models/text-embedding-004",
+                    model="models/gemini-embedding-001",
                     content=texts
                 )
                 embeddings = result["embedding"]

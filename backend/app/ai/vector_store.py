@@ -7,7 +7,7 @@ import os
 
 
 class VectorStore:
-    VECTOR_SIZE = 768
+    VECTOR_SIZE = 3072
 
     def __init__(self):
         self.collection_name = "documents"
@@ -60,6 +60,7 @@ class VectorStore:
                     print(f"Collection dimension mismatch ({current_size} vs {self.VECTOR_SIZE}), recreating...")
                     self._client.delete_collection(self.collection_name)
                 else:
+                    self._ensure_indexes()
                     return
             except Exception:
                 pass
@@ -71,6 +72,20 @@ class VectorStore:
                 distance=Distance.COSINE
             )
         )
+        self._ensure_indexes()
+
+    def _ensure_indexes(self):
+        """Create payload indexes required for filtered queries."""
+        from qdrant_client.http.models import PayloadSchemaType
+        for field in ("user_id", "document_id"):
+            try:
+                self._client.create_payload_index(
+                    collection_name=self.collection_name,
+                    field_name=field,
+                    field_schema=PayloadSchemaType.INTEGER,
+                )
+            except Exception:
+                pass  # Index already exists
 
     def upsert_chunks(
             self,

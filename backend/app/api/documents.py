@@ -52,7 +52,7 @@ def list_documents(
 def upload_document(
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    chunk_size: int = Query(200, ge=50, le=1000, description="Target chunk size in tokens"),
+    chunk_size: int = Query(0, ge=0, le=1000, description="Target chunk size in tokens. 0 = auto (based on file size)"),
     chunking_method: str = Query("auto", description="Chunking method: auto, structural, semantic"),
     use_parent_child: bool = Query(False, description="Use parent-child chunking for better retrieval"),
 ):
@@ -63,6 +63,18 @@ def upload_document(
             status_code = 400,
             detail = "No extractable text found in document"
         )
+
+    # Dynamic chunk size based on document length
+    if chunk_size == 0:
+        word_count = len(text.split())
+        if word_count < 500:
+            chunk_size = 100       # Short doc: small precise chunks
+        elif word_count < 2000:
+            chunk_size = 200       # Medium doc: balanced
+        elif word_count < 10000:
+            chunk_size = 300       # Large doc: bigger chunks
+        else:
+            chunk_size = 500       # Very large doc: maximize context
 
     # Create document record FIRST so we can rollback if vectorization fails
     document = Document(
@@ -98,6 +110,7 @@ def upload_document(
             return {
                 "document_id": document.id,
                 "chunks_stored": len(pc_data),
+                "chunk_size": chunk_size,
                 "method": "parent_child",
                 "format": format_tag,
             }
@@ -124,6 +137,7 @@ def upload_document(
             return {
                 "document_id": document.id,
                 "chunks_stored": len(chunks),
+                "chunk_size": chunk_size,
                 "method": chunking_method,
                 "format": format_tag,
             }

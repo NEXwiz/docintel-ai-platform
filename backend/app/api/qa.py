@@ -1,6 +1,6 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException
 
-from app.ai.retrieval  import RetrievalService
+from app.ai.retrieval import RetrievalService
 from app.ai.llm import LLMService
 
 # Default user ID (auth removed — RAG-focused development)
@@ -19,21 +19,31 @@ def ask_question(
     query: str,
     document_id: int | None = None,
 ):
-    chunks = retrieval_service.search(
-        query = query,
-        user_id = DEFAULT_USER_ID,
-        document_id = document_id
-    )
+    try:
+        chunks = retrieval_service.search(
+            query=query,
+            user_id=DEFAULT_USER_ID,
+            document_id=document_id
+        )
 
-    context = "\n\n".join(chunks)
+        if not chunks:
+            return {
+                "query": query,
+                "answer": "No relevant content found in this document for your question.",
+                "sources": []
+            }
 
-    answer = llm_service.generate_answer(
-        query = query,
-        context = context
-    )
+        context = "\n\n".join(chunks)
 
-    return {
-        "query":query,
-        "answer":answer,
-        "sources":chunks
-    }
+        answer = llm_service.generate_answer(
+            query=query,
+            context=context
+        )
+
+        return {
+            "query": query,
+            "answer": answer,
+            "sources": chunks
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

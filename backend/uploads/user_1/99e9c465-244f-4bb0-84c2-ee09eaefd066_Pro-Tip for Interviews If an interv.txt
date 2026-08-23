@@ -1,0 +1,1 @@
+Pro-Tip for Interviews: If an interviewer asks you about this project, the most impressive part is the "Critic Node" (self-reflection) and the "Parallel Processing" (using the Send API). Most junior developers just build a single-prompt wrapper, but you built a state-machine that grades its own homework and does things concurrently!
