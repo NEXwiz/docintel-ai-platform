@@ -69,13 +69,13 @@ st.markdown("""
         border: 1px solid rgba(139, 92, 246, 0.25);
         box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         border-radius: 16px;
-        padding: 1.6rem 2rem;
-        margin-bottom: 1.5rem;
+        padding: 1.5rem 1.8rem;
+        margin-bottom: 1.2rem;
         position: relative;
         overflow: hidden;
     }
     .hero-title {
-        font-size: 1.65rem;
+        font-size: 1.6rem;
         font-weight: 700;
         color: #ffffff;
         letter-spacing: -0.02em;
@@ -83,8 +83,8 @@ st.markdown("""
     }
     .hero-subtitle {
         color: #94a3b8;
-        font-size: 0.9rem;
-        margin-top: 0.35rem;
+        font-size: 0.88rem;
+        margin-top: 0.3rem;
         font-weight: 400;
     }
 
@@ -133,65 +133,39 @@ st.markdown("""
         text-transform: uppercase;
     }
 
-    /* Stats Counter Card */
-    .stat-box {
-        background: rgba(15, 23, 42, 0.75);
-        border: 1px solid rgba(255, 255, 255, 0.08);
-        border-radius: 14px;
-        padding: 1.25rem 1rem;
-        text-align: center;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    /* Native Chat Message Styling */
+    div[data-testid="stChatMessage"] {
+        background-color: transparent !important;
+        padding: 0.75rem 0.5rem !important;
+        margin-bottom: 0.5rem !important;
     }
-    .stat-number {
-        font-size: 2.1rem;
-        font-weight: 800;
-        background: linear-gradient(135deg, #a78bfa 0%, #818cf8 100%);
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        line-height: 1.1;
-    }
-    .stat-label-text {
-        font-size: 0.78rem;
-        color: #64748b;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        margin-top: 0.4rem;
+    
+    /* User Chat Bubble */
+    div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarUser"]) {
+        background: linear-gradient(135deg, rgba(124, 58, 237, 0.18) 0%, rgba(99, 102, 241, 0.12) 100%) !important;
+        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2) !important;
     }
 
-    /* Chat Messages */
-    .chat-user-bubble {
-        background: linear-gradient(135deg, #7c3aed 0%, #6366f1 100%);
-        color: #ffffff;
-        padding: 0.85rem 1.2rem;
-        border-radius: 16px 16px 4px 16px;
-        margin: 0.5rem 0 0.5rem auto;
-        max-width: 80%;
-        font-size: 0.92rem;
-        font-weight: 500;
-        box-shadow: 0 4px 14px rgba(124, 58, 237, 0.25);
+    /* Assistant Chat Bubble */
+    div[data-testid="stChatMessage"]:has([data-testid="stChatMessageAvatarAssistant"]) {
+        background: rgba(18, 24, 38, 0.8) !important;
+        border: 1px solid rgba(255, 255, 255, 0.09) !important;
+        border-radius: 14px !important;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25) !important;
     }
-    .chat-bot-bubble {
-        background: rgba(18, 24, 38, 0.95);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        color: #e2e8f0;
-        padding: 0.95rem 1.25rem;
-        border-radius: 16px 16px 16px 4px;
-        margin: 0.5rem auto 0.5rem 0;
-        max-width: 85%;
-        font-size: 0.92rem;
-        line-height: 1.6;
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
-    }
+
+    /* Source citations box */
     .source-box {
-        background: rgba(11, 15, 25, 0.8);
-        border: 1px solid rgba(255, 255, 255, 0.06);
+        background: rgba(11, 15, 25, 0.85);
+        border: 1px solid rgba(139, 92, 246, 0.2);
         border-radius: 8px;
-        padding: 0.6rem 0.8rem;
-        margin-top: 0.4rem;
-        font-size: 0.8rem;
+        padding: 0.65rem 0.85rem;
+        margin-top: 0.45rem;
+        font-size: 0.82rem;
         color: #94a3b8;
-        line-height: 1.45;
+        line-height: 1.5;
     }
 
     /* Upload Box */
@@ -234,16 +208,16 @@ st.markdown("""
         box-shadow: 0 0 12px rgba(139, 92, 246, 0.25) !important;
     }
 
-    /* Streamlit Form Input Overrides */
-    div[data-testid="stTextInput"] input {
-        border-radius: 10px !important;
-        background-color: rgba(18, 24, 38, 0.8) !important;
-        border: 1px solid rgba(255, 255, 255, 0.12) !important;
-        color: #ffffff !important;
+    /* Chat input bar styling */
+    div[data-testid="stChatInput"] {
+        border-radius: 14px !important;
+        background-color: rgba(18, 24, 38, 0.95) !important;
+        border: 1px solid rgba(139, 92, 246, 0.3) !important;
+        box-shadow: 0 -4px 24px rgba(0, 0, 0, 0.3) !important;
     }
-    div[data-testid="stTextInput"] input:focus {
+    div[data-testid="stChatInput"]:focus-within {
         border-color: #8b5cf6 !important;
-        box-shadow: 0 0 0 1px #8b5cf6 !important;
+        box-shadow: 0 0 0 1px #8b5cf6, 0 0 20px rgba(139, 92, 246, 0.3) !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -536,18 +510,25 @@ def render_upload():
 
 
 # ---------------------------------------------------------------------------
-# Query Docs (Q&A Page)
+# Query Docs (Q&A Page) — Immediate Two-Phase Chat Rendering
 # ---------------------------------------------------------------------------
 
 def render_qa():
     documents = fetch_documents(force_refresh=False)
 
-    st.markdown("""
-    <div class="hero-banner">
-        <div class="hero-title">Query Your Documents</div>
-        <div class="hero-subtitle">Ask questions and retrieve semantic grounded answers with citations</div>
-    </div>
-    """, unsafe_allow_html=True)
+    col_h1, col_h2 = st.columns([5, 1])
+    with col_h1:
+        st.markdown("""
+        <div class="hero-banner" style="margin-bottom: 0.8rem;">
+            <div class="hero-title">Query Your Documents</div>
+            <div class="hero-subtitle">Ask questions and retrieve semantic grounded answers with citations</div>
+        </div>
+        """, unsafe_allow_html=True)
+    with col_h2:
+        st.write("")
+        if st.session_state.conversation and st.button("🗑️ Clear Chat", use_container_width=True, help="Clear conversation history"):
+            st.session_state.conversation = []
+            st.rerun()
 
     if not documents:
         st.markdown("""
@@ -587,58 +568,61 @@ def render_qa():
     if st.session_state.selected_doc_id != doc_id:
         st.session_state.selected_doc_id = doc_id
         st.session_state.conversation = []
+        st.rerun()
 
-    # Chat history display
-    chat_box = st.container()
-    with chat_box:
-        if not st.session_state.conversation:
-            clean_name = selected_label.split(" (ID:")[0]
-            st.markdown(f"""
-            <div class="empty-container" style="padding: 2.5rem 1rem;">
-                <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">💬</div>
-                <h4 style="color: #f1f5f9; font-weight: 600; margin: 0 0 0.3rem;">Ready to answer from {clean_name}</h4>
-                <p style="color: #64748b; font-size: 0.85rem; margin: 0;">Type any question below to retrieve relevant chunks and generate accurate responses.</p>
-            </div>
-            """, unsafe_allow_html=True)
-        else:
-            for msg in st.session_state.conversation:
-                if msg["role"] == "user":
-                    st.markdown(f'<div class="chat-user-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
-                else:
-                    st.markdown(f'<div class="chat-bot-bubble">{msg["content"]}</div>', unsafe_allow_html=True)
-                    if msg.get("sources"):
-                        with st.expander(f"📚 Grounded Citations ({len(msg['sources'])} retrieved chunks)"):
-                            for i, src in enumerate(msg["sources"], 1):
-                                preview = src[:450] + ("..." if len(src) > 450 else "")
-                                st.markdown(f'<div class="source-box"><strong>[Chunk {i}]</strong><br/>{preview}</div>', unsafe_allow_html=True)
+    # Render Existing Chat History (per turn using st.chat_message)
+    if not st.session_state.conversation:
+        clean_name = selected_label.split(" (ID:")[0]
+        st.markdown(f"""
+        <div class="empty-container" style="padding: 2rem 1rem 1rem;">
+            <div style="font-size: 2rem; margin-bottom: 0.4rem;">💬</div>
+            <h4 style="color: #f1f5f9; font-weight: 600; margin: 0 0 0.3rem;">Ready to answer from {clean_name}</h4>
+            <p style="color: #64748b; font-size: 0.85rem; margin: 0;">Type any question below to retrieve relevant chunks and generate accurate responses.</p>
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        for msg in st.session_state.conversation:
+            with st.chat_message(msg["role"]):
+                st.markdown(msg["content"])
+                if msg.get("sources"):
+                    with st.expander(f"📚 Grounded Citations ({len(msg['sources'])} retrieved chunks)"):
+                        for i, src in enumerate(msg["sources"], 1):
+                            preview = src[:500] + ("..." if len(src) > 500 else "")
+                            st.markdown(f'<div class="source-box"><strong>[Chunk {i}]</strong><br/>{preview}</div>', unsafe_allow_html=True)
 
-    # Chat Input Box
-    st.markdown("<div style='margin-top: 1rem;'></div>", unsafe_allow_html=True)
-    with st.form("qa_form", clear_on_submit=True):
-        col_input, col_btn = st.columns([5, 1])
-        with col_input:
-            query = st.text_input(
-                "Question",
-                placeholder="Ask anything about the document content...",
-                label_visibility="collapsed"
-            )
-        with col_btn:
-            submitted = st.form_submit_button("🔍 Search", use_container_width=True, type="primary")
+    # Chat Input with Immediate Interactive Turn Rendering
+    if prompt := st.chat_input("Ask a question about the document..."):
+        # 1. Immediately append and display the user's question on screen
+        st.session_state.conversation.append({"role": "user", "content": prompt.strip()})
+        with st.chat_message("user"):
+            st.markdown(prompt.strip())
 
-        if submitted and query.strip():
-            st.session_state.conversation.append({"role": "user", "content": query.strip()})
-
-            resp = api_request(
-                "POST",
-                f"/qa/?query={requests.utils.quote(query.strip())}&document_id={doc_id}"
-            )
+        # 2. Immediately render the assistant's turn with an active visible spinner
+        with st.chat_message("assistant"):
+            with st.spinner("Searching document & synthesizing answer..."):
+                resp = api_request(
+                    "POST",
+                    f"/qa/?query={requests.utils.quote(prompt.strip())}&document_id={doc_id}"
+                )
 
             if resp and resp.status_code == 200:
                 data = resp.json()
+                answer = data.get("answer", "No answer could be synthesized.")
+                sources = data.get("sources", [])
+
+                # Render answer & citation box in the assistant message container
+                st.markdown(answer)
+                if sources:
+                    with st.expander(f"📚 Grounded Citations ({len(sources)} retrieved chunks)"):
+                        for i, src in enumerate(sources, 1):
+                            preview = src[:500] + ("..." if len(src) > 500 else "")
+                            st.markdown(f'<div class="source-box"><strong>[Chunk {i}]</strong><br/>{preview}</div>', unsafe_allow_html=True)
+
+                # Persist assistant response to conversation history
                 st.session_state.conversation.append({
                     "role": "assistant",
-                    "content": data.get("answer", "No answer could be synthesized."),
-                    "sources": data.get("sources", [])
+                    "content": answer,
+                    "sources": sources
                 })
             else:
                 err = "Failed to query document."
@@ -647,18 +631,16 @@ def render_qa():
                         err = resp.json().get("detail", resp.text)
                     except Exception:
                         err = resp.text
+                error_msg = f"⚠️ Error: {err}"
+                st.markdown(error_msg)
                 st.session_state.conversation.append({
                     "role": "assistant",
-                    "content": f"⚠️ Error: {err}"
+                    "content": error_msg,
+                    "sources": []
                 })
-            st.rerun()
 
-    if st.session_state.conversation:
-        c1, c2, c3 = st.columns([4, 1, 1])
-        with c3:
-            if st.button("🗑️ Clear Chat", use_container_width=True):
-                st.session_state.conversation = []
-                st.rerun()
+        # Sync full state cleanly
+        st.rerun()
 
 
 # ---------------------------------------------------------------------------
