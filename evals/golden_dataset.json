@@ -1,23 +1,23 @@
 [
   {
     "question": "How does the system chunk documents before embedding?",
-    "ground_truth": "Documents are chunked into segments of 40 words with a 5 word overlap between consecutive chunks.",
+    "ground_truth": "Documents are processed using format-aware chunkers (for PDF, HTML, Markdown, and plain text) with dynamic token sizing, semantic boundary detection, and optional parent-child retrieval.",
     "contexts": [
-      "The chunking function splits text into words and creates chunks of 40 words each. There is a 5 word overlap between consecutive chunks to preserve context across boundaries.",
-      "After text extraction, the document text is passed through the chunking module which produces overlapping segments for embedding."
+      "The smart_chunk module routes text to specialized format chunkers for PDF layouts, HTML tags, and Markdown hierarchies with dynamic token size adjustment.",
+      "After text extraction, the document text is passed through the chunking engine which supports structural, semantic, and parent-child chunking for embedding."
     ]
   },
   {
     "question": "What embedding model is used and what is the vector dimension?",
-    "ground_truth": "The system uses Google's text-embedding-004 model which produces 768 dimensional vectors.",
+    "ground_truth": "The system uses Google's gemini-embedding-001 model which produces 3072 dimensional vectors.",
     "contexts": [
-      "The EmbeddingService uses the Gemini text-embedding-004 model to generate embeddings for document chunks.",
-      "The vector store is configured with a vector size of 768 dimensions using cosine distance similarity."
+      "The EmbeddingService uses the Gemini gemini-embedding-001 model with batch splitting and retry logic to generate embeddings.",
+      "The vector store is configured with a vector size of 3072 dimensions using cosine distance similarity in Qdrant."
     ]
   },
   {
     "question": "How many context chunks are retrieved for answering a question?",
-    "ground_truth": "The retrieval service returns the top 5 most relevant chunks by default.",
+    "ground_truth": "The retrieval service returns the top 5 most relevant chunks by default with score thresholding.",
     "contexts": [
       "The retrieval service searches the vector store with a default limit of 5 results, filtered by user_id and optionally by document_id.",
       "Query embeddings are compared against stored document chunk embeddings using cosine similarity in Qdrant."
@@ -33,10 +33,10 @@
   },
   {
     "question": "What vector database is used for storing document embeddings?",
-    "ground_truth": "Qdrant is used as the vector database, supporting both cloud deployment and local Docker instances.",
+    "ground_truth": "Qdrant is used as the vector database, supporting both cloud deployment and local Docker instances with payload indexing.",
     "contexts": [
       "The VectorStore class connects to Qdrant either via a cloud URL with API key or locally on host qdrant port 6333.",
-      "Document embeddings are stored in a Qdrant collection named 'documents' with cosine distance similarity."
+      "Document embeddings are stored in a Qdrant collection named 'documents' with cosine distance similarity and indexed metadata keys."
     ]
   }
 ]
