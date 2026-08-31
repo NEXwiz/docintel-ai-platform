@@ -5,6 +5,7 @@ from qdrant_client.models import Filter, FieldCondition, MatchValue
 
 from app.db.session import get_db
 from app.models.document import Document
+from app.models.chat_message import ChatMessage
 from app.schemas.document import DocumentCreate, DocumentResponse
 
 from app.services.file_services import save_uploaded_file
@@ -185,6 +186,9 @@ def delete_document(
             ]
         )
     )
+
+    # Delete chat messages for this document
+    db.query(ChatMessage).filter(ChatMessage.document_id == document_id).delete()
 
     db.delete(document)
     db.commit()

@@ -3,12 +3,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.database import engine, Base
-from app.models import user, document
+from app.models import user, document, chat_message
 from app.api import users, documents
 from app.api import auth
 from app.api import search
 from app.api import qa
 from app.api import evaluate
+from app.api import chat
 
 
 @asynccontextmanager
@@ -38,6 +39,7 @@ app.include_router(auth.router)
 app.include_router(search.router)
 app.include_router(qa.router)
 app.include_router(evaluate.router)
+app.include_router(chat.router)
 
 
 @app.get("/health")
