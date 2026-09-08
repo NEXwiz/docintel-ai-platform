@@ -1,0 +1,10 @@
+.venv
+.git
+.github
+.vscode
+__pycache__
+*.pyc
+evals
+*.md
+.gitignore
+backend/uploads
