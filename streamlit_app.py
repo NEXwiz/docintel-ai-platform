@@ -238,6 +238,24 @@ def ask_question(query, doc_id):
     return resp.json()
 
 
+def stream_answer(query, doc_id):
+    """Stream answer tokens from the SSE endpoint."""
+    resp = requests.post(
+        f"{API_URL}/qa/stream",
+        params={"query": query, "document_id": doc_id},
+        stream=True,
+        timeout=120,
+    )
+    resp.raise_for_status()
+
+    for line in resp.iter_lines(decode_unicode=True):
+        if line.startswith("data: "):
+            token = line[6:]
+            if token == "[DONE]":
+                return
+            yield token
+
+
 # ---------------------------------------------------------------------------
 # Load Documents (once per session, then on mutations)
 # ---------------------------------------------------------------------------
@@ -364,16 +382,13 @@ else:
         with st.chat_message("user"):
             st.markdown(prompt)
 
-        # Phase 2: Show spinner, then answer
+        # Phase 2: Stream the answer token-by-token
         with st.chat_message("assistant"):
-            with st.spinner("Thinking..."):
-                try:
-                    result = ask_question(prompt, active_id)
-                    answer = result.get("answer", "No answer returned.")
-                except Exception as e:
-                    answer = f"Error: {e}"
-
-            st.markdown(answer)
+            try:
+                answer = st.write_stream(stream_answer(prompt, active_id))
+            except Exception as e:
+                answer = f"Error: {e}"
+                st.markdown(answer)
 
         st.session_state.chat_history.append({"role": "assistant", "content": answer})
         save_chat_message(active_id, "assistant", answer)
