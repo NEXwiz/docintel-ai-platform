@@ -1,10 +1,14 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
+from sqlalchemy.orm import Session
 
 from app.ai.retrieval import RetrievalService
 from app.ai.llm import LLMService
+from app.db.session import get_db
+from app.models.chat_message import ChatMessage
 
 # Default user ID (auth removed — RAG-focused development)
 DEFAULT_USER_ID = 1
+MAX_HISTORY = 10
 
 router = APIRouter(
     prefix="/qa",
@@ -18,6 +22,7 @@ llm_service = LLMService()
 def ask_question(
     query: str,
     document_id: int | None = None,
+    db: Session = Depends(get_db),
 ):
     try:
         chunks = retrieval_service.search(
@@ -35,9 +40,25 @@ def ask_question(
 
         context = "\n\n".join(chunks)
 
+        # Fetch recent chat history for multi-turn context
+        chat_history = []
+        if document_id is not None:
+            rows = (
+                db.query(ChatMessage)
+                .filter(ChatMessage.document_id == document_id)
+                .order_by(ChatMessage.created_at.desc())
+                .limit(MAX_HISTORY)
+                .all()
+            )
+            chat_history = [
+                {"role": r.role, "content": r.content}
+                for r in reversed(rows)
+            ]
+
         answer = llm_service.generate_answer(
             query=query,
-            context=context
+            context=context,
+            chat_history=chat_history,
         )
 
         return {
