@@ -7,7 +7,7 @@ class LLMService:
         genai.configure(
             api_key = os.getenv("GEMINI_API_KEY")
         )
-        self.model = genai.GenerativeModel("gemini-3-flash-preview")
+        self.model = genai.GenerativeModel("gemini-2.5-flash")
     
     def generate_answer(self, query: str, context: str) -> str:
         prompt = f"""
