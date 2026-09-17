@@ -112,6 +112,19 @@ st.markdown("""
         font-size: 0.82rem !important;
     }
 
+    /* Fix upload button overlap */
+    [data-testid="stFileUploader"] section > button {
+        position: relative;
+        z-index: 1;
+    }
+
+    [data-testid="stFileUploader"] [data-testid="stBaseButton-secondary"] {
+        background: #27272a !important;
+        border: 1px solid #3f3f46 !important;
+        color: #d4d4d8 !important;
+        border-radius: 6px;
+    }
+
     /* Divider */
     hr { border-color: #27272a !important; opacity: 0.5; }
 

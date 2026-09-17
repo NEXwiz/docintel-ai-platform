@@ -3,9 +3,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.db.database import engine, Base
-from app.models import user, document, chat_message
-from app.api import users, documents
-from app.api import auth
+from app.models import document, chat_message
+from app.api import documents
 from app.api import search
 from app.api import qa
 from app.api import evaluate
@@ -33,9 +32,7 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
-app.include_router(users.router)
 app.include_router(documents.router)
-app.include_router(auth.router)
 app.include_router(search.router)
 app.include_router(qa.router)
 app.include_router(evaluate.router)
